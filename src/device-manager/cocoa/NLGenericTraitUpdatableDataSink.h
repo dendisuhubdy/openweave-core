@@ -45,7 +45,7 @@ typedef void (^GenericTraitUpdatableDataSinkFailureBlock)(id owner, NSError * er
 - (NSString *)toErrorString:(WEAVE_ERROR)err;
 
 /**
- * clear trait data
+ * clear the whole trait data
  */
 - (void)clear;
 
@@ -249,4 +249,6 @@ typedef void (^GenericTraitUpdatableDataSinkFailureBlock)(id owner, NSError * er
 /** Returns the version of the trait represented by this data sink. */
 - (WEAVE_ERROR)getVersion:(uint64_t *)val;
 
+/** Delete the trait property data on particular path. */
+- (WEAVE_ERROR)deleteData:(NSString *)path;
 @end

@@ -128,18 +128,18 @@ exit:
     return result;
 }
 
-static void handleGenericUpdatableDataSinkComplete(void * dataSink, void * reqState)
+static void onGenericUpdatableDataSinkComplete(void * dataSink, void * reqState)
 {
-    WDM_LOG_DEBUG(@"handleGenericUpdatableDataSinkComplete");
+    WDM_LOG_DEBUG(@"onGenericUpdatableDataSinkComplete");
 
     NLGenericTraitUpdatableDataSink * sink = (__bridge NLGenericTraitUpdatableDataSink *) reqState;
     [sink DispatchAsyncCompletionBlock:nil];
 }
 
-static void handleGenericUpdatableDataSinkError(
+static void onGenericUpdatableDataSinkError(
     void * dataSink, void * appReqState, WEAVE_ERROR code, nl::Weave::DeviceManager::DeviceStatus * devStatus)
 {
-    WDM_LOG_DEBUG(@"handleGenericUpdatableDataSinkError");
+    WDM_LOG_DEBUG(@"onGenericUpdatableDataSinkError with error code %d\n", code);
 
     NSError * error = nil;
     NSDictionary * userInfo = nil;
@@ -336,7 +336,7 @@ exit:
             _mFailureHandler = [failureHandler copy];
 
             WEAVE_ERROR err = _mWeaveCppGenericTraitUpdatableDataSink->RefreshData(
-                (__bridge void *) self, handleGenericUpdatableDataSinkComplete, handleGenericUpdatableDataSinkError);
+                (__bridge void *) self, onGenericUpdatableDataSinkComplete, onGenericUpdatableDataSinkError);
 
             if (WEAVE_NO_ERROR != err) {
                 [self DispatchAsyncDefaultFailureBlockWithCode:err];
@@ -886,6 +886,31 @@ exit:
         *val = result;
     }
 
+    return err;
+}
+
+- (WEAVE_ERROR)deleteData:(NSString *)path
+{
+    __block WEAVE_ERROR err = WEAVE_NO_ERROR;
+
+    WDM_LOG_METHOD_SIG();
+
+    VerifyOrExit(NULL != _mWeaveCppGenericTraitUpdatableDataSink, err = WEAVE_ERROR_INCORRECT_STATE);
+
+    // need this bracket to use Verify macros
+    {
+        // we use sync so the result is immediately available to the caller upon return
+        dispatch_sync(_mWeaveWorkQueue, ^() {
+            err = _mWeaveCppGenericTraitUpdatableDataSink->DeleteData([path UTF8String]);
+
+            if (err == WEAVE_ERROR_INCORRECT_STATE) {
+                WDM_LOG_DEBUG(@"Got incorrect state error from DeleteData, ignore");
+                err = WEAVE_NO_ERROR; // No exception, just return 0.
+            }
+        });
+    }
+
+exit:
     return err;
 }
 
